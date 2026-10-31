@@ -1,0 +1,349 @@
+<title>Журнал воскресной школы</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap">
+<style>
+/* Layout: разворот классного журнала. Слева сверху группа, первая строка даты, строки дети, последний столбец заметки */
+:root{
+  --bg:#ffffff; --paper:#ffffff; --ink:#000000; --muted:#6b6b6b; --line:#000000; --rule:#d4d4d4;
+  --accent:#000000; --accent-ink:#ffffff; --accent-soft:#f3f3f3;
+  --plus:#000000; --plus-soft:transparent; --minus:#000000; --minus-soft:transparent; --warn-soft:#f3f3f3; --warn:#000000;
+  --display:"PT Sans","Segoe UI",Arial,sans-serif;
+  --body:"PT Sans","Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+:root{color-scheme:light}
+.gnav{display:flex;align-items:center;gap:6px;margin-top:4px}
+.gnav .grp{flex:1;min-width:0;margin:0!important;text-align:center}
+.garrow{min-width:40px;min-height:40px;border:1px solid var(--line);background:var(--paper);font-size:1.3rem;font-weight:700;line-height:1}
+.garrow:hover{background:var(--accent);color:var(--accent-ink)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2{font-family:var(--display);margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:1.6rem} h2{font-size:1.25rem}
+.muted{color:var(--muted)}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.status{font-size:.95rem;padding:6px 12px;border-radius:999px;background:var(--paper);border:1px solid var(--line);white-space:nowrap}
+.status.ok{color:var(--plus)} .status.busy{color:var(--warn)} .status.err{color:var(--minus);border-color:var(--minus)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{min-height:46px;padding:6px 16px;border-radius:10px;border:2px solid var(--line);background:var(--paper);font-weight:700}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.hint{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.95rem;color:var(--muted)}
+.hint b.p{color:var(--plus)} .hint b.m{color:var(--minus)}
+.banner{padding:12px 16px;border-radius:12px;background:var(--warn-soft);border:1px solid var(--warn)}
+
+/* журнал */
+.book{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:auto;max-height:78vh;
+  box-shadow:none}
+button,input,textarea,.book,.panel,.banner,.status{border-radius:0!important}
+.chip,.ghost,.small,.status,.banner,.panel{border-width:1px!important}
+.mark.m{color:var(--muted)}
+.status.err{font-weight:700}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+th,td{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:0;background:var(--paper)}
+thead th{position:sticky;top:0;z-index:2;border-bottom:2px solid var(--line);vertical-align:bottom}
+th.corner,td.name{position:sticky;left:0;z-index:1;border-right:2px solid var(--line)}
+th.corner{z-index:3;text-align:left;padding:10px 12px;min-width:270px;max-width:320px;vertical-align:top}
+th.corner .lbl,.datecell .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+th.corner .grp{font-family:var(--display);font-size:1.3rem;display:block;margin-top:2px;overflow-wrap:anywhere}
+td.num{width:40px;text-align:center;color:var(--muted);font-size:.9rem}
+td.name{padding:6px 8px 6px 12px;min-width:230px;max-width:280px}
+.namebox{display:flex;align-items:center;gap:6px}
+.namebox span{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
+.pen{min-width:36px;min-height:36px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:1rem}
+.pen:hover{background:var(--accent-soft);color:var(--accent)}
+.datecell{min-width:76px;padding:8px 6px;text-align:center}
+.datecell b{display:block;font-family:var(--display);font-size:1.15rem}
+.datecell small{display:block;color:var(--muted);font-size:.8rem}
+.lock{margin-top:4px;border:0;background:transparent;color:var(--muted);font-size:.78rem;text-decoration:underline;min-height:28px;padding:2px 4px}
+.newdate{min-width:170px;padding:8px;vertical-align:bottom;background:var(--accent-soft)}
+.newdate input,.editdate input{width:100%;min-height:42px;padding:4px 6px;border:2px solid var(--line);border-radius:8px;background:var(--paper);font-size:.95rem}
+.small{min-height:40px;padding:4px 10px;border-radius:8px;border:2px solid var(--line);background:var(--paper);font-weight:700;font-size:.9rem;margin-top:6px;width:100%}
+.small.go{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.small.danger{color:var(--minus);border-color:var(--minus)}
+.err{color:var(--minus);font-size:.8rem;margin-top:4px;white-space:normal}
+td.cell{text-align:center}
+.mark{width:100%;min-width:76px;height:52px;border:0;background:transparent;font-size:1.6rem;font-weight:700;line-height:1}
+.mark.p{color:var(--plus);background:var(--plus-soft)}
+.mark.m{color:var(--minus);background:var(--minus-soft)}
+.mark:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+.mark:disabled{cursor:default}
+td.blank{background:var(--accent-soft)}
+th.notes,td.notes{min-width:260px;border-left:2px solid var(--line)}
+th.notes{text-align:left;padding:10px 12px}
+td.notes textarea{display:block;width:100%;min-height:52px;border:0;padding:8px 10px;background:transparent;resize:vertical;font-size:.95rem;line-height:1.35}
+td.notes textarea:focus{outline:none;background:var(--accent-soft)}
+tfoot td{font-weight:700;text-align:center;padding:8px 6px;border-top:2px solid var(--line)}
+tfoot td.name{text-align:left;color:var(--muted);font-weight:700}
+tr.addrow td{background:var(--paper)}
+.addkid{display:flex;gap:6px}
+.addkid input{flex:1;min-width:0;min-height:44px;padding:4px 8px;border:2px dashed var(--line);border-radius:8px;background:transparent}
+.addkid button{min-height:44px;padding:4px 10px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:700}
+.editrow{display:flex;flex-direction:column;gap:6px}
+.editrow input{min-height:42px;padding:4px 8px;border:2px solid var(--accent);border-radius:8px;background:var(--paper)}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.btns .small{width:auto;margin:0}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.82rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.field input{min-height:52px;padding:8px 12px;border:2px solid var(--line);border-radius:10px;background:var(--bg)}
+.inline{display:flex;flex-wrap:wrap;gap:8px}
+.inline input{flex:1 1 220px;min-width:0}
+.big{min-height:52px;padding:8px 18px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:700}
+.ghost{min-height:46px;padding:6px 14px;border-radius:10px;border:2px solid var(--line);background:var(--paper);font-weight:700}
+.list{display:flex;flex-direction:column;gap:6px}
+.list .it{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.list .it span{flex:1}
+details.more summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center}
+.empty{text-align:center;padding:32px 12px}
+@media (prefers-reduced-motion:no-preference){.mark,.chip{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Журнал воскресной школы</h1>
+    <div id="status" class="status busy">Загружаю…</div>
+  </header>
+  <main id="main" style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel empty"><h2>Открываю журнал…</h2><p class="muted">Это займёт несколько секунд.</p></div>
+  </main>
+</div>
+
+<script>
+(function(){
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const WD=["вс","пн","вт","ср","чт","пт","сб"];
+function nearestSunday(){const d=new Date();const w=d.getDay();d.setDate(d.getDate()+(w<=3?-w:7-w));return iso(d)}
+const short=s=>{const d=parse(s);return d.getDate()+"."+pad(d.getMonth()+1)};
+const store={get(k){try{return localStorage.getItem("zh-"+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("zh-"+k,v)}catch(e){}}};
+
+const S={db:null,canWrite:true,canKnown:false,classes:[],students:[],cols:[],ready:{c:false,s:false,d:false},failed:false,slow:false,
+  classId:store.get("cls"),working:{},saving:{},dirty:{},timers:{},error:false,ask:null,editKid:null,editCol:null,msg:{},
+  pendingRender:false,scrolledFor:null};
+const main=document.getElementById("main"),statusEl=document.getElementById("status");
+const ready=()=>S.ready.c&&S.ready.s&&S.ready.d;
+const dis=()=>S.canWrite?"":" disabled";
+
+function setStatus(){
+  let t,c;
+  if(S.failed){t="Нет связи с журналом";c="err"}
+  else if(!ready()){t=S.slow?"Связь медленная, жду…":"Загружаю…";c="busy"}
+  else if(S.error){t="Не сохранилось. Проверьте интернет";c="err"}
+  else if(Object.keys(S.timers).length||Object.values(S.saving).some(Boolean)){t="Сохраняю…";c="busy"}
+  else if(!S.canWrite){t="Только просмотр";c="busy"}
+  else{t="✓ Всё сохранено";c="ok"}
+  statusEl.textContent=t;statusEl.className="status "+c;
+}
+const cls=()=>S.classes.find(c=>c.id===S.classId);
+const kids=(all)=>S.students.filter(s=>s.classId===S.classId&&(all||s.active!==false)).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+const cols=()=>S.cols.filter(c=>c.classId===S.classId).map(c=>S.working["d/"+c.id]?Object.assign({},c,S.working["d/"+c.id]):c)
+  .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.createdAt||0)-(b.createdAt||0));
+
+/* очередь записи: один документ пишется по одному разу за раз */
+function queue(path,patch,delay){
+  S.working[path]=Object.assign({},S.working[path]||{},patch);
+  clearTimeout(S.timers[path]);
+  S.timers[path]=setTimeout(()=>{delete S.timers[path];flush(path)},delay);
+  setStatus();
+}
+async function flush(path){
+  if(S.saving[path]){S.dirty[path]=true;return}
+  const body=S.working[path];if(!body)return;
+  S.saving[path]=true;setStatus();
+  const [kind,id]=path.split("/");
+  const coll=kind==="d"?"dates":"students";
+  try{await S.db.doc(coll+"/"+id).update(body);S.error=false;
+    if(S.working[path]===body&&!S.timers[path])delete S.working[path];}
+  catch(e){S.error=true;if(e&&e.code==="invalid_argument"&&!S.canKnown){S.canWrite=false;render(true)}}
+  S.saving[path]=false;
+  if(S.dirty[path]){S.dirty[path]=false;flush(path);return}
+  setStatus();
+}
+async function safe(p){try{const r=await p;S.error=false;setStatus();return r}catch(e){S.error=true;setStatus();return null}}
+
+/* ---------- отрисовка ---------- */
+function step(d){const n=S.classes.length;if(n<2)return;const i=S.classes.findIndex(c=>c.id===S.classId);
+  S.classId=S.classes[(i+d+n)%n].id;store.set("cls",S.classId);S.ask=S.editKid=S.editCol=null;S.msg={};render(true)}
+window.__groupStep=step;
+window.__flushAll=async()=>{for(const p of Object.keys(S.timers)){clearTimeout(S.timers[p]);delete S.timers[p];await flush(p)}};
+function groupBar(){
+  return "";
+  return `<div class="chips"><span class="muted">Группа:</span>${S.classes.map(c=>
+    `<button class="chip" data-act="cls" data-id="${esc(c.id)}" aria-pressed="${c.id===S.classId}">${esc(c.name)}</button>`).join("")}</div>`;
+}
+function dateHead(c){
+  const id=esc(c.id);
+  if(S.editCol===c.id){
+    const delAsk=S.ask==="del:"+c.id;
+    return `<th class="datecell editdate"><input type="date" id="ed-${id}" value="${esc(c.date)}" aria-label="Дата">
+      <button class="small go" data-act="savecol" data-id="${id}">Закрепить</button>
+      ${delAsk?`<div class="err">Удалить столбец со всеми отметками?</div><button class="small danger" data-act="delcol" data-id="${id}">Да, удалить</button><button class="small" data-act="cancel">Нет</button>`
+        :`<button class="small danger" data-act="askdel" data-id="${id}">Удалить столбец</button>`}
+      <button class="small" data-act="closecol">Отмена</button>${S.msg[c.id]?`<div class="err">${esc(S.msg[c.id])}</div>`:""}</th>`;
+  }
+  const d=parse(c.date);
+  let h=`<th class="datecell" title="Дата закреплена"><b>${short(c.date)}</b><small>${WD[d.getDay()]} · ${d.getFullYear()}</small>`;
+  if(S.canWrite){
+    h+=S.ask==="unlock:"+c.id
+      ?`<div class="err">Изменить дату?</div><button class="small" data-act="unlock" data-id="${id}">Да</button><button class="small" data-act="cancel">Нет</button>`
+      :`<button class="lock" data-act="askunlock" data-id="${id}">изменить</button>`;
+  }
+  return h+`</th>`;
+}
+function journal(){
+  const c=cls(),list=kids(),cs=cols();
+  const used=new Set(cs.map(x=>x.date));
+  let suggest=nearestSunday();while(used.has(suggest)){const d=parse(suggest);d.setDate(d.getDate()+7);suggest=iso(d)}
+  let h=`<table><thead><tr><th class="corner" colspan="2">`;
+  const gn=S.classes.length,gi=S.classes.findIndex(x=>x.id===S.classId);
+  if(gn>1)h+=`<span class="lbl">Группа ${gi+1} из ${gn}</span><div class="gnav"><button class="garrow" data-act="gstep" data-d="-1" aria-label="Предыдущая группа" title="Предыдущая группа">‹</button><span class="grp">${esc(c.name)}</span><button class="garrow" data-act="gstep" data-d="1" aria-label="Следующая группа" title="Следующая группа">›</button></div></th>`;
+  else h+=`<span class="lbl">Группа</span><span class="grp">${esc(c.name)}</span></th>`;
+  h+=cs.map(dateHead).join("");
+  if(S.canWrite)h+=`<th class="newdate"><span class="lbl" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700">Новая дата</span>
+    <input type="date" id="newdate" value="${suggest}" aria-label="Дата нового урока">
+    <button class="small go" data-act="addcol">Закрепить дату</button>${S.msg.new?`<div class="err">${esc(S.msg.new)}</div>`:""}</th>`;
+  h+=`<th class="notes"><span class="lbl" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700">Заметки</span></th></tr></thead><tbody>`;
+  list.forEach((k,i)=>{
+    const kid=esc(k.id);
+    let name;
+    if(S.editKid===k.id){
+      name=`<div class="editrow"><input id="ren-${kid}" value="${esc(k.name)}" aria-label="Имя и фамилия">
+        <div class="btns"><button class="small go" data-act="rename" data-sid="${kid}">Сохранить</button>
+        ${S.ask==="hide:"+k.id?`<button class="small danger" data-act="hide" data-sid="${kid}">Да, убрать</button><button class="small" data-act="cancel">Нет</button>`
+          :`<button class="small danger" data-act="askhide" data-sid="${kid}">Убрать из журнала</button>`}
+        <button class="small" data-act="closekid">Отмена</button></div></div>`;
+    }else name=`<div class="namebox"><span>${esc(k.name)}</span>${S.canWrite?`<button class="pen" data-act="editkid" data-sid="${kid}" aria-label="Исправить имя">✎</button>`:""}</div>`;
+    h+=`<tr><td class="num">${i+1}</td><td class="name">${name}</td>`;
+    for(const col of cs){
+      const v=(col.marks||{})[k.id]||"";
+      h+=`<td class="cell"><button class="mark ${v==="+"?"p":v==="-"?"m":""}" data-act="mark" data-id="${esc(col.id)}" data-sid="${kid}" aria-label="${esc(k.name)}, ${short(col.date)}: ${v==="+"?"был":v==="-"?"не был":"пусто"}"${dis()}>${v==="+"?"+":v==="-"?"−":""}</button></td>`;
+    }
+    if(S.canWrite)h+=`<td class="blank"></td>`;
+    h+=`<td class="notes"><textarea id="note-${kid}" data-live="note" data-sid="${kid}" rows="1" aria-label="Заметка: ${esc(k.name)}"${dis()}>${esc(k.note||"")}</textarea></td></tr>`;
+  });
+  if(S.canWrite)h+=`<tr class="addrow"><td class="num">${list.length+1}</td><td class="name"><div class="addkid">
+    <input id="newkid" placeholder="Фамилия Имя" aria-label="Фамилия и имя нового ребёнка"><button data-act="addkid">Добавить</button></div></td>
+    ${cs.map(()=>`<td></td>`).join("")}<td class="blank"></td><td class="notes"></td></tr>`;
+  h+=`</tbody>`;
+  if(list.length&&cs.length)h+=`<tfoot><tr><td class="num"></td><td class="name">Было на уроке</td>${cs.map(col=>
+    `<td>${list.filter(k=>(col.marks||{})[k.id]==="+").length}</td>`).join("")}${S.canWrite?`<td class="blank"></td>`:""}<td class="notes"></td></tr></tfoot>`;
+  h+=`</table>`;
+  return h;
+}
+function view(){
+  const c=cls();
+  let h=groupBar();
+  if(!S.canWrite)h+=`<div class="banner">У вас доступ только для просмотра. Чтобы заполнять журнал, попросите владельца дать вам права «Участник».</div>`;
+  h+=`<div class="hint"><span>Нажмите на клетку: один раз <b class="p">+</b> (был), второй раз <b class="m">−</b> (не был), третий раз клетка очистится.</span>
+    <span>Сохранять ничего не нужно.</span></div>`;
+  h+=`<div class="book" id="book">${journal()}</div>`;
+  const gone=kids(true).filter(k=>k.active===false);
+  if(S.canWrite)h+=`<details class="more panel"><summary>Настройки группы</summary>
+    <div class="field"><label for="clsname">Название группы</label><div class="inline"><input id="clsname" value="${esc(c.name)}"><button class="ghost" data-act="renamecls">Сохранить</button></div></div>
+    <div class="field"><label for="newcls">Новая группа</label><div class="inline"><input id="newcls" placeholder="Например: Старшая группа"><button class="ghost" data-act="addcls">Создать</button></div></div>
+    ${gone.length?`<div class="field"><label>Убранные из журнала</label><div class="list">${gone.map(k=>`<div class="it"><span>${esc(k.name)}</span><button class="ghost" data-act="unhide" data-sid="${esc(k.id)}">Вернуть</button></div>`).join("")}</div></div>`:""}
+  </details>`;
+  return h;
+}
+function render(){
+  const ae=document.activeElement;
+  const keep=ae&&ae.id&&ae.id!=="newdate"&&main.contains(ae)&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA")
+    ?{id:ae.id,v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
+  draw();
+  if(keep){const el=document.getElementById(keep.id);
+    if(el){el.value=keep.v;el.focus({preventScroll:true});try{el.setSelectionRange(keep.s,keep.e)}catch(e){}}}
+}
+function draw(){
+  setStatus();
+  if(S.failed){main.innerHTML=`<div class="panel empty"><h2>Журнал не открылся</h2><p>Записи журнала хранятся в Claude. Войдите в свой аккаунт Claude и откройте ссылку ещё раз.</p></div>`;return}
+  if(!ready()){main.innerHTML=`<div class="panel empty"><h2>Открываю журнал…</h2><p class="muted">${S.slow?"Связь медленная. Подождите ещё немного.":"Это займёт несколько секунд."}</p></div>`;return}
+  if(!S.classes.length){main.innerHTML=`<div class="panel"><h2>Начнём</h2><p>Как называется группа? Название будет стоять в левом верхнем углу журнала.</p>
+    <div class="field"><label for="newcls">Название группы</label><div class="inline"><input id="newcls" placeholder="Например: Младшая группа"${dis()}><button class="big" data-act="addcls"${dis()}>Создать журнал</button></div></div></div>`;return}
+  if(!cls()){S.classId=S.classes[0].id;store.set("cls",S.classId)}
+  const old=document.getElementById("book");const sl=old?old.scrollLeft:0,st=old?old.scrollTop:0,sy=window.scrollY;
+  const det=main.querySelector("details.more");const open=det&&det.open;
+  main.innerHTML=view();
+  const b=document.getElementById("book");
+  if(S.scrolledFor!==S.classId){S.scrolledFor=S.classId;b.scrollLeft=b.scrollWidth}else{b.scrollLeft=sl;b.scrollTop=st}
+  if(open)main.querySelector("details.more").open=true;
+  window.scrollTo(0,sy);
+}
+
+/* ---------- действия ---------- */
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button");if(!t||t.disabled)return;
+  const a=t.dataset.act,id=t.dataset.id,sid=t.dataset.sid;
+  switch(a){
+    case "gstep":step(Number(t.dataset.d));break;
+    case "cls":S.classId=id;store.set("cls",id);S.ask=S.editKid=S.editCol=null;render(true);break;
+    case "mark":{
+      const col=cols().find(x=>x.id===id);if(!col)return;
+      const marks=Object.assign({},col.marks||{});const v=marks[sid]||"";
+      marks[sid]=v===""?"+":v==="+"?"-":"";
+      queue("d/"+id,{marks},500);render(true);break}
+    case "addcol":{
+      const v=document.getElementById("newdate").value;S.msg={};
+      if(!v){S.msg.new="Выберите дату.";render(true);return}
+      if(cols().some(x=>x.date===v)){S.msg.new="Такая дата уже есть в журнале.";render(true);return}
+      await safe(S.db.collection("dates").add({classId:S.classId,date:v,marks:{},createdAt:Date.now()}));
+      const b=document.getElementById("book");if(b)setTimeout(()=>{b.scrollLeft=b.scrollWidth},50);break}
+    case "askunlock":S.ask="unlock:"+id;render(true);break;
+    case "unlock":S.ask=null;S.editCol=id;S.msg={};render(true);break;
+    case "closecol":S.editCol=null;S.ask=null;S.msg={};render(true);break;
+    case "savecol":{
+      const v=document.getElementById("ed-"+id).value;S.msg={};
+      if(!v){S.msg[id]="Выберите дату.";render(true);return}
+      if(cols().some(x=>x.date===v&&x.id!==id)){S.msg[id]="Такая дата уже есть.";render(true);return}
+      S.editCol=null;queue("d/"+id,{date:v},0);render(true);break}
+    case "askdel":S.ask="del:"+id;render(true);break;
+    case "delcol":S.ask=null;S.editCol=null;await safe(S.db.doc("dates/"+id).delete());break;
+    case "cancel":S.ask=null;render(true);break;
+    case "editkid":S.editKid=sid;S.ask=null;render(true);{const i=document.getElementById("ren-"+sid);i&&i.focus()}break;
+    case "closekid":S.editKid=null;S.ask=null;render(true);break;
+    case "rename":{const v=document.getElementById("ren-"+sid).value.trim();if(!v)return;S.editKid=null;queue("s/"+sid,{name:v},0);render(true);break}
+    case "askhide":S.ask="hide:"+sid;render(true);break;
+    case "hide":S.ask=null;S.editKid=null;queue("s/"+sid,{active:false},0);render(true);break;
+    case "unhide":queue("s/"+sid,{active:true},0);break;
+    case "addkid":{const i=document.getElementById("newkid");const v=i.value.trim();if(!v){i.focus();return}
+      i.value="";await safe(S.db.collection("students").add({name:v,classId:S.classId,note:"",active:true,createdAt:Date.now()}));
+      const n=document.getElementById("newkid");n&&n.focus();break}
+    case "renamecls":{const v=document.getElementById("clsname").value.trim();if(v)await safe(S.db.doc("classes/"+S.classId).update({name:v}));break}
+    case "addcls":{const i=document.getElementById("newcls");const v=i.value.trim();if(!v){i.focus();return}
+      const ref=S.db.collection("classes").doc();S.classId=ref.id;store.set("cls",ref.id);
+      await safe(ref.set({name:v,createdAt:Date.now()}));render(true);break}
+  }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.live==="note")queue("s/"+t.dataset.sid,{note:t.value},800);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  const map={newkid:"addkid",newcls:"addcls",clsname:"renamecls"};
+  if(map[e.target.id]){e.preventDefault();const b=document.querySelector(`[data-act="${map[e.target.id]}"]`);b&&b.click()}
+  if(e.target.id&&e.target.id.startsWith("ren-")){e.preventDefault();document.querySelector(`[data-act="rename"]`).click()}
+});
+
+/* ---------- старт ---------- */
+(async()=>{
+  const slow=setTimeout(()=>{S.slow=true;render()},10000);
+  const db=window.localDB||(typeof claude!=="undefined"?await claude.use("db"):null);
+  if(!db){clearTimeout(slow);S.failed=true;render(true);return}
+  S.db=db;
+  if(!window.localDB&&typeof claude!=="undefined")claude.use("user").then(async u=>{if(!u)return;try{const c=await u.can("data.write");if(c===false){S.canWrite=false;S.canKnown=true;render(true)}else if(c===true)S.canKnown=true}catch(e){}});
+  const done=()=>{if(ready())clearTimeout(slow);render()};
+  const fail=()=>{clearTimeout(slow);S.failed=true;render(true)};
+  const all=s=>s.docs.map(d=>Object.assign({id:d.id},d.data()));
+  db.collection("classes").onSnapshot(s=>{S.classes=all(s).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));if(!s.metadata.fromCache)S.ready.c=true;done()},fail);
+  db.collection("students").onSnapshot(s=>{S.students=all(s);if(!s.metadata.fromCache)S.ready.s=true;done()},fail);
+  db.collection("dates").onSnapshot(s=>{S.cols=all(s);if(!s.metadata.fromCache)S.ready.d=true;done()},fail);
+})();
+})();
+</script>
