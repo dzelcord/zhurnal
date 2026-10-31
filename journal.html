@@ -67,7 +67,7 @@ td.name{padding:6px 8px 6px 12px;min-width:230px;max-width:280px}
 .pen{width:30px;height:30px;border:0;border-radius:999px;background:transparent;color:var(--faint);font-size:.9rem;opacity:0}
 tr:hover .pen,.pen:focus-visible{opacity:1}
 .pen:hover{background:var(--fill);color:var(--ink)}
-.datecell{min-width:72px;padding:10px 6px;text-align:center}
+.datecell{min-width:104px;padding:10px 6px;text-align:center}
 .datecell b{display:block;font-size:1.05rem;font-weight:600}
 .datecell small{display:block;color:var(--muted);font-size:.72rem}
 .lock{margin-top:2px;border:0;background:transparent;color:var(--faint);font-size:.72rem;min-height:24px;padding:2px 6px;border-radius:999px}
@@ -80,12 +80,25 @@ tr:hover .pen,.pen:focus-visible{opacity:1}
 .small.danger{color:var(--danger)}
 .err{color:var(--danger);font-size:.75rem;margin-top:4px;white-space:normal}
 td.cell{text-align:center}
-.mark{width:100%;min-width:72px;height:46px;border:0;background:transparent;font-size:1.3rem;font-weight:500;line-height:1;border-radius:0}
+.mark{width:100%;min-width:52px;height:46px;border:0;background:transparent;font-size:1.3rem;font-weight:500;line-height:1;border-radius:0}
 .mark.p{color:var(--plus)}
 .mark.m{color:var(--minus)}
 .mark:hover{background:rgba(255,255,255,.6)}
 .mark:disabled{cursor:default}
 td.blank{background:rgba(255,255,255,.25)}
+.sub{display:grid;grid-template-columns:1fr 1fr;margin-top:8px;font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+td.gcell{border-left-color:rgba(29,29,31,.03)}
+.grade{width:100%;min-width:52px;height:46px;border:0;background:transparent;font-size:1.05rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.grade:hover{background:rgba(255,255,255,.6)}
+.grade:disabled{cursor:default}
+.grade.open{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 1.5px var(--rule-strong)}
+th.avg,td.avg{min-width:76px;text-align:center;color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+th.avg{padding:10px 6px}
+.picker{position:fixed;z-index:100;display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,.82);
+  -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);border:1px solid var(--glass-edge);box-shadow:var(--shadow)}
+.picker button{width:36px;height:36px;border-radius:999px;border:0;background:transparent;font-weight:600;font-size:1rem;color:var(--ink)}
+.picker button:hover,.picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.picker .clr{color:var(--muted);font-weight:400}
 th.notes,td.notes{min-width:260px}
 th.notes{text-align:left;padding:10px 14px}
 td.notes textarea{display:block;width:100%;min-height:46px;border:0;padding:12px 14px;background:transparent;resize:vertical;font-size:.88rem;line-height:1.35;color:var(--ink)}
@@ -133,6 +146,7 @@ details.more[open] summary::before{transform:rotate(90deg)}
     <div class="panel empty"><h2>Открываю журнал…</h2><p class="muted">Это займёт несколько секунд.</p></div>
   </main>
 </div>
+<div id="picker" class="picker" role="group" aria-label="Балл" hidden></div>
 
 <script>
 (function(){
@@ -147,7 +161,7 @@ const store={get(k){try{return localStorage.getItem("zh-"+k)}catch(e){return nul
 
 const S={db:null,canWrite:true,canKnown:false,classes:[],students:[],cols:[],ready:{c:false,s:false,d:false},failed:false,slow:false,
   classId:store.get("cls"),working:{},saving:{},dirty:{},timers:{},error:false,ask:null,editKid:null,editCol:null,msg:{},
-  pendingRender:false,scrolledFor:null};
+  pendingRender:false,scrolledFor:null,pick:null};
 const main=document.getElementById("main"),statusEl=document.getElementById("status");
 const ready=()=>S.ready.c&&S.ready.s&&S.ready.d;
 const dis=()=>S.canWrite?"":" disabled";
@@ -203,21 +217,22 @@ function dateHead(c){
   const id=esc(c.id);
   if(S.editCol===c.id){
     const delAsk=S.ask==="del:"+c.id;
-    return `<th class="datecell editdate"><input type="date" id="ed-${id}" value="${esc(c.date)}" aria-label="Дата">
+    return `<th class="datecell editdate" colspan="2"><input type="date" id="ed-${id}" value="${esc(c.date)}" aria-label="Дата">
       <button class="small go" data-act="savecol" data-id="${id}">Закрепить</button>
       ${delAsk?`<div class="err">Удалить столбец со всеми отметками?</div><button class="small danger" data-act="delcol" data-id="${id}">Да, удалить</button><button class="small" data-act="cancel">Нет</button>`
         :`<button class="small danger" data-act="askdel" data-id="${id}">Удалить столбец</button>`}
       <button class="small" data-act="closecol">Отмена</button>${S.msg[c.id]?`<div class="err">${esc(S.msg[c.id])}</div>`:""}</th>`;
   }
   const d=parse(c.date);
-  let h=`<th class="datecell" title="Дата закреплена"><b>${short(c.date)}</b><small>${WD[d.getDay()]} · ${d.getFullYear()}</small>`;
+  let h=`<th class="datecell" colspan="2" title="Дата закреплена"><b>${short(c.date)}</b><small>${WD[d.getDay()]} · ${d.getFullYear()}</small>`;
   if(S.canWrite){
     h+=S.ask==="unlock:"+c.id
       ?`<div class="err">Изменить дату?</div><button class="small" data-act="unlock" data-id="${id}">Да</button><button class="small" data-act="cancel">Нет</button>`
       :`<button class="lock" data-act="askunlock" data-id="${id}">изменить</button>`;
   }
-  return h+`</th>`;
+  return h+`<div class="sub"><span>был</span><span>балл</span></div></th>`;
 }
+const fmtAvg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1).replace(".",","):"";
 function journal(){
   const c=cls(),list=kids(),cs=cols();
   const used=new Set(cs.map(x=>x.date));
@@ -230,7 +245,7 @@ function journal(){
   if(S.canWrite)h+=`<th class="newdate"><span class="lbl">Новая дата</span>
     <input type="date" id="newdate" value="${suggest}" aria-label="Дата нового урока">
     <button class="small go" data-act="addcol">Закрепить дату</button>${S.msg.new?`<div class="err">${esc(S.msg.new)}</div>`:""}</th>`;
-  h+=`<th class="notes"><span class="lbl">Заметки</span></th></tr></thead><tbody>`;
+  h+=`<th class="avg"><span class="lbl">Ср. балл</span></th><th class="notes"><span class="lbl">Заметки</span></th></tr></thead><tbody>`;
   list.forEach((k,i)=>{
     const kid=esc(k.id);
     let name;
@@ -245,16 +260,20 @@ function journal(){
     for(const col of cs){
       const v=(col.marks||{})[k.id]||"";
       h+=`<td class="cell"><button class="mark ${v==="+"?"p":v==="-"?"m":""}" data-act="mark" data-id="${esc(col.id)}" data-sid="${kid}" aria-label="${esc(k.name)}, ${short(col.date)}: ${v==="+"?"был":v==="-"?"не был":"пусто"}"${dis()}>${v==="+"?"+":v==="-"?"−":""}</button></td>`;
+      const g=Number((col.grades||{})[k.id])||0;
+      const open=S.pick&&S.pick.id===col.id&&S.pick.sid===k.id;
+      h+=`<td class="cell gcell"><button class="grade${open?" open":""}" data-act="grade" data-id="${esc(col.id)}" data-sid="${kid}" aria-label="${esc(k.name)}, ${short(col.date)}: балл ${g||"не поставлен"}"${S.canWrite&&v!=="-"?"":" disabled"}>${g||""}</button></td>`;
     }
     if(S.canWrite)h+=`<td class="blank"></td>`;
+    h+=`<td class="avg">${fmtAvg(cs.map(col=>Number((col.grades||{})[k.id])||0).filter(Boolean))}</td>`;
     h+=`<td class="notes"><textarea id="note-${kid}" data-live="note" data-sid="${kid}" rows="1" aria-label="Заметка: ${esc(k.name)}"${dis()}>${esc(k.note||"")}</textarea></td></tr>`;
   });
   if(S.canWrite)h+=`<tr class="addrow"><td class="num">${list.length+1}</td><td class="name"><div class="addkid">
     <input id="newkid" placeholder="Фамилия Имя" aria-label="Фамилия и имя нового ребёнка"><button data-act="addkid">Добавить</button></div></td>
-    ${cs.map(()=>`<td></td>`).join("")}<td class="blank"></td><td class="notes"></td></tr>`;
+    ${cs.map(()=>`<td></td><td class="gcell"></td>`).join("")}<td class="blank"></td><td class="avg"></td><td class="notes"></td></tr>`;
   h+=`</tbody>`;
-  if(list.length&&cs.length)h+=`<tfoot><tr><td class="num"></td><td class="name">Было на уроке</td>${cs.map(col=>
-    `<td>${list.filter(k=>(col.marks||{})[k.id]==="+").length}</td>`).join("")}${S.canWrite?`<td class="blank"></td>`:""}<td class="notes"></td></tr></tfoot>`;
+  if(list.length&&cs.length)h+=`<tfoot><tr><td class="num"></td><td class="name">Было на уроке · ср. балл</td>${cs.map(col=>
+    `<td>${list.filter(k=>(col.marks||{})[k.id]==="+").length}</td><td class="gcell">${fmtAvg(list.map(k=>Number((col.grades||{})[k.id])||0).filter(Boolean))}</td>`).join("")}${S.canWrite?`<td class="blank"></td>`:""}<td class="avg">${fmtAvg(list.flatMap(k=>cs.map(col=>Number((col.grades||{})[k.id])||0)).filter(Boolean))}</td><td class="notes"></td></tr></tfoot>`;
   h+=`</table>`;
   return h;
 }
@@ -262,7 +281,8 @@ function view(){
   const c=cls();
   let h=groupBar();
   if(!S.canWrite)h+=`<div class="banner">У вас доступ только для просмотра. Чтобы заполнять журнал, попросите владельца дать вам права «Участник».</div>`;
-  h+=`<div class="hint"><span>Нажмите на клетку: один раз <b class="p">+</b> (был), второй раз <b class="m">−</b> (не был), третий раз клетка очистится.</span>
+  h+=`<div class="hint"><span>Клетка «был»: один раз <b class="p">+</b>, второй раз <b class="m">−</b>, третий раз пусто.</span>
+    <span>Клетка «балл»: нажмите и выберите от 1 до 5 (или наберите цифру).</span>
     <span>Сохранять ничего не нужно.</span></div>`;
   h+=`<div class="book" id="book">${journal()}</div>`;
   const gone=kids(true).filter(k=>k.active===false);
@@ -297,6 +317,46 @@ function draw(){
   window.scrollTo(0,sy);
 }
 
+/* ---------- баллы ---------- */
+const picker=document.getElementById("picker");
+function setGrade(id,sid,v){
+  const col=cols().find(x=>x.id===id);if(!col)return;
+  const grades=Object.assign({},col.grades||{});grades[sid]=v||0;
+  const patch={grades};
+  if(v&&!(col.marks||{})[sid]){patch.marks=Object.assign({},col.marks||{});patch.marks[sid]="+"}
+  queue("d/"+id,patch,400);render(true);
+}
+function openPick(){
+  const p=S.pick;if(!p)return;
+  const btn=document.querySelector(`.grade[data-id="${CSS.escape(p.id)}"][data-sid="${CSS.escape(p.sid)}"]`);
+  if(!btn){closePick();return}
+  const col=cols().find(x=>x.id===p.id);const g=Number(((col&&col.grades)||{})[p.sid])||0;
+  picker.innerHTML=[1,2,3,4,5].map(n=>`<button data-act="setgrade" data-v="${n}" aria-pressed="${g===n}">${n}</button>`).join("")
+    +`<button class="clr" data-act="setgrade" data-v="0" aria-label="Убрать балл" title="Убрать балл">✕</button>`;
+  picker.hidden=false;
+  const r=btn.getBoundingClientRect(),w=picker.offsetWidth,h=picker.offsetHeight;
+  let x=r.left+r.width/2-w/2;x=Math.max(8,Math.min(x,window.innerWidth-w-8));
+  let y=r.bottom+6;if(y+h>window.innerHeight-8)y=r.top-h-6;
+  picker.style.left=x+"px";picker.style.top=y+"px";
+}
+function closePick(){S.pick=null;picker.hidden=true}
+document.addEventListener("click",e=>{
+  if(!S.pick)return;
+  const t=e.target.closest("button");
+  if(t&&(t.dataset.act==="grade"||t.dataset.act==="setgrade"))return;
+  closePick();render(true);
+},true);
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if(e.key==="Escape"&&S.pick){closePick();render(true);return}
+  if(!t.classList||!t.classList.contains("grade")||t.disabled)return;
+  if(/^[1-5]$/.test(e.key)){e.preventDefault();closePick();setGrade(t.dataset.id,t.dataset.sid,Number(e.key));focusGrade(t.dataset.id,t.dataset.sid)}
+  else if(e.key==="0"||e.key==="Backspace"||e.key==="Delete"){e.preventDefault();closePick();setGrade(t.dataset.id,t.dataset.sid,0);focusGrade(t.dataset.id,t.dataset.sid)}
+});
+function focusGrade(id,sid){const b=document.querySelector(`.grade[data-id="${CSS.escape(id)}"][data-sid="${CSS.escape(sid)}"]`);b&&b.focus()}
+window.addEventListener("resize",()=>{if(S.pick){closePick();render(true)}});
+document.addEventListener("scroll",()=>{if(S.pick)openPick()},true);
+
 /* ---------- действия ---------- */
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button");if(!t||t.disabled)return;
@@ -308,7 +368,13 @@ document.addEventListener("click",async e=>{
       const col=cols().find(x=>x.id===id);if(!col)return;
       const marks=Object.assign({},col.marks||{});const v=marks[sid]||"";
       marks[sid]=v===""?"+":v==="+"?"-":"";
-      queue("d/"+id,{marks},500);render(true);break}
+      const patch={marks};
+      if(marks[sid]==="-"&&Number((col.grades||{})[sid])){patch.grades=Object.assign({},col.grades||{});patch.grades[sid]=0}
+      queue("d/"+id,patch,500);render(true);break}
+    case "grade":{
+      if(S.pick&&S.pick.id===id&&S.pick.sid===sid){closePick();render(true);break}
+      S.pick={id,sid};render(true);openPick();break}
+    case "setgrade":{const p=S.pick;closePick();if(p)setGrade(p.id,p.sid,Number(t.dataset.v));break}
     case "addcol":{
       const v=document.getElementById("newdate").value;S.msg={};
       if(!v){S.msg.new="Выберите дату.";render(true);return}
