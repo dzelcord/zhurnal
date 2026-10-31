@@ -6,11 +6,12 @@
 * `journal.html` общая страница журнала. Она же опубликована как веб-версия в Claude.
 * `main.js`, `preload.js`, `app/localdb.js` приложение для macOS на Electron; записи хранятся в файле на Mac.
 * `build-html.js` собирает `app/index.html` из `journal.html`.
-* `make-zip.py` упаковывает `.app` в zip с UTF-8 именами и сохранением ярлыков.
+* `localize.js` добавляет русское имя программы; имена файлов внутри `.app` только латинские,
+  иначе «Утилита архивов» на Mac не распаковывает zip (ошибка 94).
 * `release/Как установить.txt` инструкция для пользователя.
 
 Сборка:
 
     npm install
     npm run build
-    python3 make-zip.py "dist/Журнал воскресной школы-darwin-arm64" "Журнал воскресной школы.app" release/Zhurnal-Mac-arm64.zip
+    cd dist/Zhurnal-darwin-arm64 && zip -qry -9 ../../release/Zhurnal-Mac-arm64.zip Zhurnal.app

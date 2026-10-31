@@ -6,7 +6,7 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "build": "node build-html.js && electron-packager . \"Журнал воскресной школы\" --platform=darwin --arch=arm64,x64 --out=dist --overwrite --app-bundle-id=local.sundayschool.journal --app-version=1.0.0 --icon=icon.icns --ignore=^/dist --ignore=^/node_modules/.bin --ignore=build-html.js --ignore=icon.png"
+    "build": "node build-html.js && electron-packager . Zhurnal --platform=darwin --arch=arm64,x64 --out=dist --overwrite --app-bundle-id=local.sundayschool.journal --app-version=1.0.0 --icon=icon.icns --extend-info=extra-info.plist --ignore=^/dist --ignore=^/release --ignore=^/node_modules/.bin --ignore=build-html.js --ignore=make-zip.py --ignore=icon.png --ignore=extra-info.plist --ignore=journal.html --ignore=README.md && node localize.js"
   },
   "devDependencies": {
     "electron": "33.4.11",
