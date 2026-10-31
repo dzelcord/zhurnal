@@ -7,7 +7,7 @@
 
 После распаковки перетащите программу в «Программы» и один раз выполните в Терминале:
 
-    xattr -cr /Applications/Zhurnal.app
+    xattr -cr /Applications/Zhurnal.app && codesign --force --deep --sign - /Applications/Zhurnal.app
 
 * `journal.html` общая страница журнала. Она же опубликована как веб-версия в Claude.
 * `main.js`, `preload.js`, `app/localdb.js` приложение для macOS на Electron; записи хранятся в файле на Mac.

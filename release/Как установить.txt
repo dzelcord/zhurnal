@@ -17,7 +17,7 @@
    Откройте программу «Терминал» (через поиск Spotlight: Cmd + Пробел, слово «Терминал»),
    вставьте строку ниже и нажмите Return:
 
-   xattr -cr /Applications/Zhurnal.app
+   xattr -cr /Applications/Zhurnal.app && codesign --force --deep --sign - /Applications/Zhurnal.app
 
    После этого программа открывается обычным двойным щелчком.
 
