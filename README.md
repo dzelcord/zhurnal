@@ -3,6 +3,12 @@
 Журнал посещений в виде классного журнала: группа в левом верхнем углу, даты в первой строке,
 дети по строкам, отметки «+» и «−», заметки в последнем столбце. Группы листаются стрелками.
 
+**Скачать для Mac на чипах Apple (M1–M4, A18 Pro):** [Zhurnal-Mac-arm64.zip](https://github.com/dzelcord/zhurnal/raw/main/download/Zhurnal-Mac-arm64.zip)
+
+После распаковки перетащите программу в «Программы» и один раз выполните в Терминале:
+
+    xattr -cr /Applications/Zhurnal.app
+
 * `journal.html` общая страница журнала. Она же опубликована как веб-версия в Claude.
 * `main.js`, `preload.js`, `app/localdb.js` приложение для macOS на Electron; записи хранятся в файле на Mac.
 * `build-html.js` собирает `app/index.html` из `journal.html`.
