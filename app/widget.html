@@ -1,0 +1,53 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Занятие</title>
+<style>
+:root{--ink:#1d1d1f;--muted:#6e6e73;--faint:#a1a1a8;--fill:rgba(29,29,31,.07);--accent:#1d1d1f;--accent-ink:#fff;color-scheme:light;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;
+  background:linear-gradient(150deg,rgba(255,255,255,.55),rgba(244,238,250,.45) 55%,rgba(234,246,241,.45));
+  -webkit-app-region:drag;cursor:default}
+.card{height:100%;padding:14px 16px 14px;display:flex;flex-direction:column;gap:6px}
+.top{display:flex;align-items:center;justify-content:space-between}
+.lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34c759;margin-right:6px;vertical-align:1px}
+.x{-webkit-app-region:no-drag;width:22px;height:22px;border:0;border-radius:999px;background:transparent;color:var(--faint);font-size:.8rem;cursor:pointer;opacity:0;transition:opacity .15s,background .15s}
+body:hover .x{opacity:1}
+.x:hover{background:var(--fill);color:var(--ink)}
+.name{font-size:1.35rem;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.when{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;border-radius:999px;background:var(--fill);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.go{-webkit-app-region:no-drag;margin-top:auto;min-height:32px;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:.85rem;font-weight:500;cursor:pointer}
+.go:hover{background:#3a3a3c}
+.empty{font-size:.85rem;color:var(--muted);line-height:1.35}
+</style></head><body>
+<div class="card" id="card"><div class="top"><span class="lbl">Журнал</span><button class="x" id="x" title="Скрыть карточку" aria-label="Скрыть карточку">✕</button></div>
+<div class="empty">Загружаю расписание…</div></div>
+<script>
+const card=document.getElementById("card");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const close=`<button class="x" id="x" title="Скрыть карточку" aria-label="Скрыть карточку">✕</button>`;
+let cur=null;
+function draw(st){
+  cur=st;
+  if(!st){card.innerHTML=`<div class="top"><span class="lbl">Журнал</span>${close}</div>
+    <div class="empty">Время занятий не задано. Откройте журнал и укажите его в «Настройках группы».</div>
+    <button class="go" data-open="">Открыть журнал</button>`;return}
+  const now=st.mode==="now";
+  card.innerHTML=`<div class="top"><span class="lbl">${now?'<span class="dot"></span>Сейчас идёт':"Следующее занятие"}</span>${close}</div>
+    <div class="name">${esc(st.name)}</div>
+    <div class="when">${now?`${st.start}–${st.end} · осталось ${st.left}`:`${st.wait?st.wait+" · ":""}${st.day}, ${st.start}–${st.end}`}</div>
+    ${now?`<div class="bar"><i style="width:${Math.round(st.progress*100)}%"></i></div>`:""}
+    <button class="go" data-open="${esc(st.id)}">Открыть журнал группы</button>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.id==="x")window.cardApi.hide();
+  else if(b.dataset.open!==undefined)window.cardApi.open(b.dataset.open||null);
+});
+window.cardApi.onState(draw);
+</script>
+</body></html>

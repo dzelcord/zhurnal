@@ -134,6 +134,19 @@ details.more summary::-webkit-details-marker{display:none}
 details.more summary::before{content:"›";display:inline-block;margin-right:8px;transition:transform .15s}
 details.more[open] summary::before{transform:rotate(90deg)}
 .empty{text-align:center;padding:36px 12px}
+.nowcard{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;border-radius:22px;padding:14px 18px;background:var(--glass);
+  -webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);
+  border:1px solid var(--glass-edge);box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.8)}
+.nowcard .nc-text{flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nowcard .nc-text .lbl{margin:0}
+.nowcard b{font-size:1.1rem;font-weight:600}
+.nowcard .nc-bar{flex-basis:100%;height:4px;border-radius:999px;background:var(--fill);overflow:hidden;order:3}
+.nowcard .nc-bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.nowcard .here{font-size:.85rem;color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34c759;margin-right:6px;vertical-align:1px}
+.sched{align-items:center}
+.sched select,.sched input[type=time]{min-height:42px;padding:6px 12px;border:0;border-radius:12px;background:var(--fill);font:inherit}
+.sched input[type=time]{flex:0 0 auto}
 @media (prefers-reduced-motion:no-preference){.mark,.small,.ghost,.garrow,.pen{transition:background .15s,opacity .15s}}
 </style>
 
@@ -159,6 +172,30 @@ function nearestSunday(){const d=new Date();const w=d.getDay();d.setDate(d.getDa
 const short=s=>{const d=parse(s);return d.getDate()+"."+pad(d.getMonth()+1)};
 const store={get(k){try{return localStorage.getItem("zh-"+k)}catch(e){return null}},set(k,v){try{localStorage.setItem("zh-"+k,v)}catch(e){}}};
 
+const DAYS=["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const DSHORT=["вс","пн","вт","ср","чт","пт","сб"];
+/* расписание шести групп воскресной школы, заполняется кнопкой в настройках */
+const PRESET=[["3","10:15","11:00"],["7","11:05","11:50"],["4","11:55","12:40"],["1","13:50","14:35"],["2","14:40","15:25"],["5","15:30","16:25"]];
+const toMin=t=>{const [h,m]=String(t).split(":").map(Number);return h*60+m};
+const hasSched=c=>c&&Number.isInteger(c.day)&&/^\d\d:\d\d$/.test(c.start||"")&&/^\d\d:\d\d$/.test(c.end||"");
+const weekKey=c=>hasSched(c)?((c.day+6)%7)*1440+toMin(c.start):1e9;
+function sortClasses(a){return a.sort((x,y)=>weekKey(x)-weekKey(y)||(x.createdAt||0)-(y.createdAt||0))}
+function lessonNow(list,now){
+  now=now||new Date();
+  const items=list.filter(hasSched);if(!items.length)return null;
+  const w=now.getDay()*1440+now.getHours()*60+now.getMinutes();
+  for(const g of items){const a=g.day*1440+toMin(g.start),b=g.day*1440+toMin(g.end);
+    if(w>=a&&w<b)return{mode:"now",g,left:b-w,progress:(w-a)/(b-a)}}
+  let best=null;
+  for(const g of items){let d=g.day*1440+toMin(g.start)-w;if(d<=0)d+=7*1440;if(!best||d<best.d)best={g,d}}
+  return{mode:"next",g:best.g,until:best.d};
+}
+const fmtLeft=m=>m<60?m+" мин":Math.floor(m/60)+" ч"+(m%60?" "+m%60+" мин":"");
+function fmtWait(m){
+  if(m<60)return "через "+m+" мин";
+  if(m<24*60){const h=Math.floor(m/60),r=m%60;return "через "+h+" ч"+(r?" "+r+" мин":"")}
+  return "";
+}
 const S={db:null,canWrite:true,canKnown:false,classes:[],students:[],cols:[],ready:{c:false,s:false,d:false},failed:false,slow:false,
   classId:store.get("cls"),working:{},saving:{},dirty:{},timers:{},error:false,ask:null,editKid:null,editCol:null,msg:{},
   pendingRender:false,scrolledFor:null,pick:null};
@@ -277,9 +314,26 @@ function journal(){
   h+=`</table>`;
   return h;
 }
+function nowCard(){
+  const st=lessonNow(S.classes);
+  if(!st)return `<div id="nowcard" hidden></div>`;
+  const g=st.g,when=`${DSHORT[g.day]} · ${g.start}–${g.end}`;
+  const here=g.id===S.classId;
+  let h=`<div class="nowcard" id="nowcard"><div class="nc-text">`;
+  if(st.mode==="now")h+=`<span class="lbl"><span class="dot"></span>Сейчас идёт занятие</span><b>${esc(g.name)}</b><span class="muted">${when} · осталось ${fmtLeft(st.left)}</span>`;
+  else{const w=fmtWait(st.until);h+=`<span class="lbl">Следующее занятие</span><b>${esc(g.name)}</b><span class="muted">${w?w+" · ":""}${DAYS[g.day].toLowerCase()}, ${g.start}–${g.end}</span>`}
+  h+=`</div>${here?`<span class="here">Журнал этой группы открыт ниже</span>`:`<button class="big" data-act="opengroup" data-id="${esc(g.id)}">Открыть журнал группы</button>`}`;
+  if(st.mode==="now")h+=`<div class="nc-bar"><i style="width:${Math.round(st.progress*100)}%"></i></div>`;
+  return h+`</div>`;
+}
+function openGroup(id){
+  if(!S.classes.some(c=>c.id===id))return;
+  S.classId=id;store.set("cls",id);S.ask=S.editKid=S.editCol=null;S.msg={};closePick();render(true);window.scrollTo(0,0);
+}
+window.__openGroup=openGroup;
 function view(){
   const c=cls();
-  let h=groupBar();
+  let h=groupBar()+nowCard();
   if(!S.canWrite)h+=`<div class="banner">У вас доступ только для просмотра. Чтобы заполнять журнал, попросите владельца дать вам права «Участник».</div>`;
   h+=`<div class="hint"><span>Клетка «был»: один раз <b class="p">+</b>, второй раз <b class="m">−</b>, третий раз пусто.</span>
     <span>Клетка «балл»: нажмите и выберите от 1 до 5 (или наберите цифру).</span>
@@ -288,6 +342,12 @@ function view(){
   const gone=kids(true).filter(k=>k.active===false);
   if(S.canWrite)h+=`<details class="more panel"><summary>Настройки группы</summary>
     <div class="field"><label for="clsname">Название группы</label><div class="inline"><input id="clsname" value="${esc(c.name)}"><button class="ghost" data-act="renamecls">Сохранить</button></div></div>
+    <div class="field"><label for="sday">Время занятий</label><div class="inline sched">
+      <select id="sday" aria-label="День недели">${[1,2,3,4,5,6,0].map(d=>`<option value="${d}"${(Number.isInteger(c.day)?c.day:0)===d?" selected":""}>${DAYS[d]}</option>`).join("")}</select>
+      <input type="time" id="sstart" value="${esc(c.start||"")}" aria-label="Начало"><span class="muted">–</span><input type="time" id="send" value="${esc(c.end||"")}" aria-label="Конец">
+      <button class="ghost" data-act="savesched">Сохранить</button></div>${S.msg.sched?`<div class="err">${esc(S.msg.sched)}</div>`:""}</div>
+    ${S.classes.some(hasSched)?"":`<div class="field"><label>Расписание всех групп</label><div><button class="ghost" data-act="preset">Заполнить расписание шести групп (3, 7, 4, 1, 2, 5)</button></div>
+      <span class="muted" style="font-size:.85rem">Воскресенье: 3 — 10:15–11:00, 7 — 11:05–11:50, 4 — 11:55–12:40, 1 — 13:50–14:35, 2 — 14:40–15:25, 5 — 15:30–16:25. Существующие группы с этими номерами получат время, недостающие будут созданы.</span></div>`}
     <div class="field"><label for="newcls">Новая группа</label><div class="inline"><input id="newcls" placeholder="Например: Старшая группа"><button class="ghost" data-act="addcls">Создать</button></div></div>
     ${gone.length?`<div class="field"><label>Убранные из журнала</label><div class="list">${gone.map(k=>`<div class="it"><span>${esc(k.name)}</span><button class="ghost" data-act="unhide" data-sid="${esc(k.id)}">Вернуть</button></div>`).join("")}</div></div>`:""}
   </details>`;
@@ -306,7 +366,9 @@ function draw(){
   if(S.failed){main.innerHTML=`<div class="panel empty"><h2>Журнал не открылся</h2><p>Записи журнала хранятся в Claude. Войдите в свой аккаунт Claude и откройте ссылку ещё раз.</p></div>`;return}
   if(!ready()){main.innerHTML=`<div class="panel empty"><h2>Открываю журнал…</h2><p class="muted">${S.slow?"Связь медленная. Подождите ещё немного.":"Это займёт несколько секунд."}</p></div>`;return}
   if(!S.classes.length){main.innerHTML=`<div class="panel"><h2>Начнём</h2><p>Как называется группа? Название будет стоять в левом верхнем углу журнала.</p>
-    <div class="field"><label for="newcls">Название группы</label><div class="inline"><input id="newcls" placeholder="Например: Младшая группа"${dis()}><button class="big" data-act="addcls"${dis()}>Создать журнал</button></div></div></div>`;return}
+    <div class="field"><label for="newcls">Название группы</label><div class="inline"><input id="newcls" placeholder="Например: Младшая группа"${dis()}><button class="big" data-act="addcls"${dis()}>Создать журнал</button></div></div>
+    <div class="field"><label>Или сразу все группы</label><div><button class="ghost" data-act="preset"${dis()}>Создать шесть групп с расписанием (3, 7, 4, 1, 2, 5)</button></div>
+      <span class="muted" style="font-size:.85rem">Воскресенье: 3 — 10:15–11:00, 7 — 11:05–11:50, 4 — 11:55–12:40, 1 — 13:50–14:35, 2 — 14:40–15:25, 5 — 15:30–16:25.</span></div></div>`;return}
   if(!cls()){S.classId=S.classes[0].id;store.set("cls",S.classId)}
   const old=document.getElementById("book");const sl=old?old.scrollLeft:0,st=old?old.scrollTop:0,sy=window.scrollY;
   const det=main.querySelector("details.more");const open=det&&det.open;
@@ -402,6 +464,21 @@ document.addEventListener("click",async e=>{
       i.value="";await safe(S.db.collection("students").add({name:v,classId:S.classId,note:"",active:true,createdAt:Date.now()}));
       const n=document.getElementById("newkid");n&&n.focus();break}
     case "renamecls":{const v=document.getElementById("clsname").value.trim();if(v)await safe(S.db.doc("classes/"+S.classId).update({name:v}));break}
+    case "opengroup":openGroup(id);break;
+    case "savesched":{
+      const day=Number(document.getElementById("sday").value),a=document.getElementById("sstart").value,b=document.getElementById("send").value;S.msg={};
+      if(!a||!b){S.msg.sched="Укажите время начала и конца.";render(true);return}
+      if(toMin(b)<=toMin(a)){S.msg.sched="Конец занятия должен быть позже начала.";render(true);return}
+      await safe(S.db.doc("classes/"+S.classId).update({day,start:a,end:b}));render(true);break}
+    case "preset":{
+      let t=Date.now();
+      for(const [n,a,b] of PRESET){
+        const re=new RegExp("(^|\\D)"+n+"(\\D|$)");
+        const ex=S.classes.find(c=>re.test(c.name));
+        if(ex)await safe(S.db.doc("classes/"+ex.id).update({day:0,start:a,end:b}));
+        else await safe(S.db.collection("classes").doc().set({name:"Группа "+n,day:0,start:a,end:b,createdAt:t++}));
+      }
+      render(true);break}
     case "addcls":{const i=document.getElementById("newcls");const v=i.value.trim();if(!v){i.focus();return}
       const ref=S.db.collection("classes").doc();S.classId=ref.id;store.set("cls",ref.id);
       await safe(ref.set({name:v,createdAt:Date.now()}));render(true);break}
@@ -428,7 +505,9 @@ document.addEventListener("keydown",e=>{
   const done=()=>{if(ready())clearTimeout(slow);render()};
   const fail=()=>{clearTimeout(slow);S.failed=true;render(true)};
   const all=s=>s.docs.map(d=>Object.assign({id:d.id},d.data()));
-  db.collection("classes").onSnapshot(s=>{S.classes=all(s).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));if(!s.metadata.fromCache)S.ready.c=true;done()},fail);
+  db.collection("classes").onSnapshot(s=>{S.classes=sortClasses(all(s));if(!s.metadata.fromCache)S.ready.c=true;done();
+    if(window.journalStore&&window.journalStore.setSchedule)window.journalStore.setSchedule(S.classes.map(c=>({id:c.id,name:c.name,day:c.day,start:c.start,end:c.end})));},fail);
+  setInterval(()=>{const n=document.getElementById("nowcard");if(n&&ready()&&S.classes.length)n.outerHTML=nowCard()},30000);
   db.collection("students").onSnapshot(s=>{S.students=all(s);if(!s.metadata.fromCache)S.ready.s=true;done()},fail);
   db.collection("dates").onSnapshot(s=>{S.cols=all(s);if(!s.metadata.fromCache)S.ready.d=true;done()},fail);
 })();
