@@ -44,7 +44,8 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 820, minWidth: 720, minHeight: 500,
     title: "Журнал воскресной школы",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#eef1fb",
+    titleBarStyle: "hiddenInset",
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true }
   });
   win.loadFile(path.join(__dirname, "app", "index.html"));
